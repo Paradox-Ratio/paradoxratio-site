@@ -132,6 +132,11 @@
   .stat-num{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:40px;color:var(--gold);}
   .stat-lbl{color:var(--text-dim);font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-top:6px;}
 
+  .cms-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;max-width:960px;margin:40px auto 0;}
+  .cms-gcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .cms-gcard img{width:100%;display:block;}
+  .cms-gcard .cap{padding:12px 14px;font-size:13px;color:var(--text-dim);}
+
   .result-mock{
     max-width:380px;margin:0 auto;background:linear-gradient(160deg,#141625,#0A0B12);
     border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 30px 70px rgba(0,0,0,.5);
@@ -330,6 +335,7 @@
       <div><div class="rm-foot-num">66%</div><div class="rm-foot-lbl">Réussite</div></div>
     </div>
   </div>
+  <div id="cms-gallery" class="cms-gallery"></div>
 </section>
 
 <section id="comment">
@@ -473,7 +479,7 @@
     <h2>Bientôt : des offres exclusives chez tes bookmakers préférés</h2>
     <p>Bonus de bienvenue et avantages réservés à la communauté Paradox Ratio, en cours de mise en place.</p>
   </div>
-  <div class="bk-grid" data-reveal>
+  <div class="bk-grid" id="bk-grid" data-reveal>
     <div class="bk-card"><div class="bk-icon">🎰</div><div class="bk-name">1xBet</div><span class="bk-soon">Bientôt</span></div>
     <div class="bk-card"><div class="bk-icon">🎰</div><div class="bk-name">Betwinner</div><span class="bk-soon">Bientôt</span></div>
     <div class="bk-card"><div class="bk-icon">🎰</div><div class="bk-name">Melbet</div><span class="bk-soon">Bientôt</span></div>
@@ -540,6 +546,37 @@ const countObserver = new IntersectionObserver((entries)=>{
   });
 }, {threshold:0.5});
 document.querySelectorAll('[data-count]').forEach(el=>countObserver.observe(el));
+
+// ---- Connexion au CMS (visuels + bookmakers dynamiques) ----
+fetch('https://gestion.paradoxratio.com/api/content')
+  .then(r => r.json())
+  .then(data => {
+    // Galerie de visuels
+    const gallery = document.getElementById('cms-gallery');
+    if (data.visuals && data.visuals.length > 0) {
+      gallery.innerHTML = data.visuals.map(v => `
+        <div class="cms-gcard">
+          <img src="${v.image}" loading="lazy">
+          ${v.caption ? `<div class="cap">${v.caption.replace(/</g,'&lt;')}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Bookmakers actifs (remplace les cartes "Bientôt" si des vrais liens existent)
+    const bkGrid = document.getElementById('bk-grid');
+    if (data.bookmakers && data.bookmakers.length > 0) {
+      bkGrid.innerHTML = data.bookmakers.map(b => `
+        <a href="${b.url}" target="_blank" class="bk-card" style="opacity:1;text-decoration:none;">
+          <div class="bk-icon">${b.icon || '🎰'}</div>
+          <div class="bk-name">${b.name}</div>
+          <span class="bk-soon" style="background:rgba(55,214,122,.15);color:var(--green);">Actif</span>
+        </a>
+      `).join('');
+    }
+  })
+  .catch(() => {
+    // Le CMS n'est pas joignable : le site continue de fonctionner normalement avec son contenu statique
+  });
 </script>
 
 </body>
