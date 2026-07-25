@@ -296,7 +296,7 @@
   </div>
 </header>
 
-<div class="urgency-bar">🔥 <b>Places VIP limitées</b> ce mois-ci — rejoins avant que les créneaux d'accompagnement soient complets</div>
+<div class="urgency-bar" id="urgency-bar">🔥 <b>Places VIP limitées</b> ce mois-ci — rejoins avant que les créneaux d'accompagnement soient complets</div>
 
 <section class="hero">
   <div class="hero-glow"></div>
@@ -368,7 +368,7 @@
     <div class="eyebrow">Ils nous font confiance</div>
     <h2>Ce que dit la communauté</h2>
   </div>
-  <div class="testi-grid" data-reveal>
+  <div class="testi-grid" id="testi-grid" data-reveal>
     <div class="testi-card">
       <div class="testi-stars">★★★★★</div>
       <div class="testi-text">"Ce qui m'a convaincu, c'est qu'ils partagent aussi les pertes. On sent que c'est du sérieux, pas juste du marketing."</div>
@@ -416,7 +416,7 @@
     <h2>Choisis ta formule</h2>
     <p>Paiement 100% Mobile Money, accès immédiat après validation.</p>
   </div>
-  <div class="pricing" data-reveal>
+  <div class="pricing" id="pricing-grid" data-reveal>
     <div class="price-card">
       <h3>Pass Mensuel</h3>
       <div class="price-amount">5 000 <span>FCFA</span></div>
@@ -449,7 +449,7 @@
     <div class="eyebrow">Questions fréquentes</div>
     <h2>Tout ce qu'il faut savoir</h2>
   </div>
-  <div class="faq" data-reveal>
+  <div class="faq" id="faq-list" data-reveal>
     <div class="faq-item">
       <div class="faq-q">Le paiement est-il sécurisé ?<span class="plus">+</span></div>
       <div class="faq-a">Le paiement se fait directement via ton opérateur Mobile Money (MTN/Airtel), aucune donnée bancaire n'est partagée avec un tiers.</div>
@@ -508,12 +508,13 @@
 </footer>
 
 <script>
-document.querySelectorAll('.faq-item').forEach(item=>{
-  item.querySelector('.faq-q').addEventListener('click', ()=>{
-    const wasOpen = item.classList.contains('open');
-    document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
-    if(!wasOpen) item.classList.add('open');
-  });
+document.getElementById('faq-list').addEventListener('click', (e)=>{
+  const q = e.target.closest('.faq-q');
+  if (!q) return;
+  const item = q.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+  if(!wasOpen) item.classList.add('open');
 });
 
 // Apparition au scroll
@@ -547,30 +548,75 @@ const countObserver = new IntersectionObserver((entries)=>{
 }, {threshold:0.5});
 document.querySelectorAll('[data-count]').forEach(el=>countObserver.observe(el));
 
-// ---- Connexion au CMS (visuels + bookmakers dynamiques) ----
+// ---- Connexion au CMS (contenu géré en temps réel) ----
 fetch('https://gestion.paradoxratio.com/api/content')
   .then(r => r.json())
   .then(data => {
+    const esc = s => (s || '').replace(/</g,'&lt;');
+
+    // Bannière d'urgence
+    if (data.settings && data.settings.urgency_text) {
+      document.getElementById('urgency-bar').innerHTML = esc(data.settings.urgency_text);
+    }
+
     // Galerie de visuels
     const gallery = document.getElementById('cms-gallery');
     if (data.visuals && data.visuals.length > 0) {
       gallery.innerHTML = data.visuals.map(v => `
         <div class="cms-gcard">
           <img src="${v.image}" loading="lazy">
-          ${v.caption ? `<div class="cap">${v.caption.replace(/</g,'&lt;')}</div>` : ''}
+          ${v.caption ? `<div class="cap">${esc(v.caption)}</div>` : ''}
         </div>
       `).join('');
     }
 
-    // Bookmakers actifs (remplace les cartes "Bientôt" si des vrais liens existent)
+    // Bookmakers actifs
     const bkGrid = document.getElementById('bk-grid');
     if (data.bookmakers && data.bookmakers.length > 0) {
       bkGrid.innerHTML = data.bookmakers.map(b => `
         <a href="${b.url}" target="_blank" class="bk-card" style="opacity:1;text-decoration:none;">
           <div class="bk-icon">${b.icon || '🎰'}</div>
-          <div class="bk-name">${b.name}</div>
+          <div class="bk-name">${esc(b.name)}</div>
           <span class="bk-soon" style="background:rgba(55,214,122,.15);color:var(--green);">Actif</span>
         </a>
+      `).join('');
+    }
+
+    // Tarifs
+    if (data.pricing && data.pricing.length > 0) {
+      document.getElementById('pricing-grid').innerHTML = data.pricing.map(p => {
+        const features = (p.features || '').split(',').filter(Boolean).map(f => `<li>${esc(f.trim())}</li>`).join('');
+        return `
+        <div class="price-card ${p.featured ? 'featured' : ''}">
+          ${p.featured ? '<div class="featured-tag">Meilleure valeur</div>' : ''}
+          <h3>${esc(p.name)}</h3>
+          <div class="price-amount">${esc(p.price)}</div>
+          <div class="price-period">${esc(p.period_label)}</div>
+          <ul class="price-features">${features}</ul>
+          <a href="${data.settings.bot_link || 'https://t.me/paradoxratio_bot'}" class="${p.featured ? 'btn' : 'btn-outline'}">Choisir cette formule</a>
+        </div>`;
+      }).join('');
+    }
+
+    // FAQ
+    if (data.faq && data.faq.length > 0) {
+      document.getElementById('faq-list').innerHTML = data.faq.map(f => `
+        <div class="faq-item">
+          <div class="faq-q">${esc(f.question)}<span class="plus">+</span></div>
+          <div class="faq-a">${esc(f.answer)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Témoignages
+    if (data.testimonials && data.testimonials.length > 0) {
+      document.getElementById('testi-grid').innerHTML = data.testimonials.map(t => `
+        <div class="testi-card">
+          <div class="testi-stars">${'★'.repeat(t.stars)}${'☆'.repeat(5 - t.stars)}</div>
+          <div class="testi-text">"${esc(t.content)}"</div>
+          <div class="testi-author"><div class="testi-avatar">${esc((t.name||'?')[0])}</div>
+          <div><div class="testi-name">${esc(t.name)}</div><div class="testi-role">${esc(t.role)}</div></div></div>
+        </div>
       `).join('');
     }
   })
