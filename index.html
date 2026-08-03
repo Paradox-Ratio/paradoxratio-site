@@ -338,6 +338,15 @@
   <div id="cms-gallery" class="cms-gallery"></div>
 </section>
 
+<section id="pronostics-ia">
+  <div class="section-head">
+    <div class="eyebrow">Analyse par IA</div>
+    <h2>Nos derniers pronostics</h2>
+    <p>Générés à partir des statistiques réelles, relus avant publication.</p>
+  </div>
+  <div id="cms-predictions" class="cms-gallery"></div>
+</section>
+
 <section id="comment">
   <div class="section-head">
     <div class="eyebrow">Simple et rapide</div>
@@ -566,6 +575,20 @@ fetch('https://gestion.paradoxratio.com/api/content')
         <div class="cms-gcard">
           <img src="${v.image}" loading="lazy">
           ${v.caption ? `<div class="cap">${esc(v.caption)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Pronostics IA publiés
+    const predGrid = document.getElementById('cms-predictions');
+    if (data.predictions && data.predictions.length > 0) {
+      predGrid.innerHTML = data.predictions.map(p => `
+        <div class="cms-gcard">
+          ${p.image ? `<img src="${p.image}" loading="lazy">` : ''}
+          <div class="cap">
+            <b>${esc(p.home)} 🆚 ${esc(p.away)}</b>${p.league ? ` — ${esc(p.league)}` : ''}<br>
+            🎯 ${esc(p.prediction)} · 📊 ${esc(p.confidence)}
+          </div>
         </div>
       `).join('');
     }
