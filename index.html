@@ -586,8 +586,8 @@ fetch('https://gestion.paradoxratio.com/api/content')
         <div class="cms-gcard">
           ${p.image ? `<img src="${p.image}" loading="lazy">` : ''}
           <div class="cap">
-            <b>${esc(p.home)} 🆚 ${esc(p.away)}</b>${p.league ? ` — ${esc(p.league)}` : ''}<br>
-            🎯 ${esc(p.prediction)} · 📊 ${esc(p.confidence)}
+            <b>${esc(p.home)}${p.away ? ` 🆚 ${esc(p.away)}` : ''}</b>${p.league ? ` — ${esc(p.league)}` : ''}<br>
+            🎯 ${esc(p.prediction).replace(/\n/g, '<br>')} · 📊 ${esc(p.confidence)}
           </div>
         </div>
       `).join('');
